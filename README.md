@@ -2,7 +2,7 @@
 
 Algorithm developped for the **Multiphysics Integrated Computational Project**. The project consists in the implementation of a discontinuous Galerkin finite element solver for acoustic waves on 3-dimensional complex and unstructured meshes using the Gmsh library.
 
-## Use
+## Compilation
 
 First, make sure that the Eigen library is installed and that your GCC supports OpenMP. Then move to the source folder and compile the project by providing the Eigen path to the compiler (write on the same line). The path-to-project is the path to the main folder. An example of compiler command is given in compile.bat.
 ```css
