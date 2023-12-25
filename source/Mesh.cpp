@@ -1,14 +1,14 @@
 #include <string>
 #include <assert.h>
 #include <iostream>
-#include <chrono>
 #include <algorithm>
+#include <chrono>
+#include <gmsh.h>
 #include <omp.h>
 
-#include "..\include\gmsh.h"
-#include "..\include\utils.h"
-#include "..\include\Mesh.h"
-#include "..\include\configParser.h"
+#include "utils.h"
+#include "Mesh.h"
+#include "configParser.h"
 
 using namespace std;
 
@@ -16,16 +16,24 @@ Mesh::Mesh(string name,Config config) : name(name),config(config){
 
     // Elements
 
+    int numPrimaryNodes = 0;
+
     m_elDim = gmsh::model::getDimension();
     gmsh::model::mesh::getElementTypes(m_elType,m_elDim);
-    gmsh::model::mesh::getElementProperties(m_elType[0],m_elName,m_elDim,m_elOrder,m_elNumNodes,m_elParamCoord);
+    gmsh::model::mesh::getElementProperties(m_elType[0],m_elName,m_elDim,m_elOrder,m_elNumNodes,m_elParamCoord,numPrimaryNodes);
     gmsh::model::mesh::getElementsByType(m_elType[0],m_elTags,m_elNodeTags);
     m_elNum = (int) m_elTags.size();
     m_elIntType = "Gauss"+to_string(2*m_elOrder);
-    gmsh::model::mesh::getJacobians(m_elType[0],m_elIntType,m_elJacobians,m_elJacobianDets,m_elIntPtCoords);
+
+    int numOrientations;
+    int numComponents;
+
+    gmsh::model::mesh::getIntegrationPoints(m_elType[0], m_elIntType, m_elParamCoord, m_elWeight);
+    gmsh::model::mesh::getBasisFunctions(m_elType[0],m_elParamCoord,config.elementType,numComponents,m_elBasisFcts,numOrientations);
+    gmsh::model::mesh::getBasisFunctions(m_elType[0],m_elParamCoord,"Grad"+config.elementType,numComponents,m_elUGradBasisFcts,numOrientations);
+    gmsh::model::mesh::getJacobians(m_elType[0],m_elParamCoord,m_elJacobians,m_elJacobianDets, m_elIntPtCoords);
+
     m_elNumIntPts = (int) m_elJacobianDets.size() / m_elNum;
-    gmsh::model::mesh::getBasisFunctions(m_elType[0],m_elIntType,config.elementType,m_elIntParamCoords,*new int,m_elBasisFcts);
-    gmsh::model::mesh::getBasisFunctions(m_elType[0],m_elIntType,"Grad"+config.elementType,m_elIntParamCoords,*new int,m_elUGradBasisFcts);
 
     // Gmsh provides the derivative of the shape functions along the parametric directions.
     // We therefore compute their derivative along the physical directions thanks to composed derivative.
@@ -93,7 +101,7 @@ Mesh::Mesh(string name,Config config) : name(name),config(config){
     // [3] Create a single entity containing all the unique faces
 
     m_fEntity = gmsh::model::addDiscreteEntity(m_fDim);
-    gmsh::model::mesh::setElementsByType(m_fDim,m_fEntity,m_fType,{},m_fNodeTags);
+    gmsh::model::mesh::addElementsByType(m_fEntity, m_fType, {}, m_fNodeTags);
     m_fNodeTags.clear();
     gmsh::model::mesh::getElementsByType(m_fType,m_fTags,m_fNodeTags,m_fEntity);
     m_fNum = m_fTags.size();
@@ -102,10 +110,13 @@ Mesh::Mesh(string name,Config config) : name(name),config(config){
     // The same integration type and order is applied to the surface and to the volume integrals
 
     m_fIntType = m_elIntType;
-    gmsh::model::mesh::getJacobians(m_fType,m_fIntType,m_fJacobians,m_fJacobianDets,m_fIntPtCoords,m_fEntity);
-    m_fNumIntPts = (int) m_fJacobianDets.size() / m_fNum;
-    gmsh::model::mesh::getBasisFunctions(m_fType,m_fIntType,config.elementType,m_fIntParamCoords,*new int,m_fBasisFcts);
-    gmsh::model::mesh::getBasisFunctions(m_fType,m_fIntType,"Grad"+config.elementType,m_fIntParamCoords,*new int,m_fUGradBasisFcts);
+
+    gmsh::model::mesh::getIntegrationPoints(m_fType, m_fIntType, m_fIntParamCoords, m_fWeight);
+    gmsh::model::mesh::getBasisFunctions(m_fType,m_fIntParamCoords,config.elementType,*new int,m_fBasisFcts,numOrientations);
+    gmsh::model::mesh::getBasisFunctions(m_fType,m_fIntParamCoords,"Grad"+config.elementType, *new int, m_fUGradBasisFcts, numOrientations);
+    gmsh::model::mesh::getJacobians(m_fType,m_fIntParamCoords,m_fJacobians,m_fJacobianDets,m_fIntPtCoords,m_fEntity);
+
+    m_fNumIntPts = (int)m_fJacobianDets.size() / m_fNum;
     
     // See element part for explanations
 
@@ -226,7 +237,8 @@ Mesh::Mesh(string name,Config config) : name(name),config(config){
         for(int f=0; f<m_fNumPerEl; ++f){
 
             dotProduct = 0.0;
-            gmsh::model::mesh::getNode(elFNodeTag(el,f),fNodeCoord,paramCoords);
+            int dim,tag;
+            gmsh::model::mesh::getNode(elFNodeTag(el,f),fNodeCoord,paramCoords,dim,tag);
 
             for(int x=0; x<m_Dim; x++){
                 elOuterDir[x] = fNodeCoord[x] - m_elBarycenters[el*3+x];
@@ -289,7 +301,7 @@ Mesh::Mesh(string name,Config config) : name(name),config(config){
     // Default = Absorbing, 1 = Reflecting, 2 = Absorbing
      
     m_fBC.resize(m_fNum);
-    vector<int> nodeTags;
+    vector<std::size_t> nodeTags;
     vector<double> coord;
 
     for (auto const& physBC : config.physBCs){
@@ -378,7 +390,7 @@ void Mesh::getElMassMatrix(const int el,const bool inverse,double *elMassMatrix)
         for (int j=0; j<m_elNumNodes; ++j){
             elMassMatrix[i*m_elNumNodes+j] = 0.0;
             for(int g=0; g<m_elNumIntPts; g++){
-                elMassMatrix[i*m_elNumNodes+j] += elBasisFct(g,i)*elBasisFct(g,j)*elWeight(g)*elJacobianDet(el,g);
+                elMassMatrix[i*m_elNumNodes+j] += elBasisFct(g,i)*elBasisFct(g,j)*m_elWeight[g]*elJacobianDet(el,g);
             }
         }
     }
@@ -400,7 +412,7 @@ void Mesh::getElStiffVector(const int el,vector<vector<double>> &Flux,vector<dou
         for (int j=0; j<m_elNumNodes; ++j){
             jId = el*m_elNumNodes+j;
             for(int g=0; g<m_elNumIntPts; g++){
-                elStiffVector[i] += eigen::dot(Flux[jId].data(),&elGradBasisFct(el,g,i),m_Dim)*elBasisFct(g,j)*elWeight(g)*elJacobianDet(el,g);
+                elStiffVector[i] += eigen::dot(Flux[jId].data(),&elGradBasisFct(el,g,i),m_Dim)*elBasisFct(g,j)*m_elWeight[g]*elJacobianDet(el,g);
             }
         }
     }
@@ -449,7 +461,7 @@ void Mesh::precomputeFlux(vector<double> &u,vector<vector<double>> &Flux,int eq)
 
             for (int n=0; n<m_fNumNodes; ++n){
                 fFlux(f,n) = 0;
-                for (int g=0; g<m_fNumIntPts; ++g){fFlux(f,n) += fWeight(g)*fBasisFct(g,n)*FIntPts[g]*fJacobianDet(f,g);}
+                for (int g=0; g<m_fNumIntPts; ++g){fFlux(f,n) += m_fWeight[g]*fBasisFct(g,n)*FIntPts[g]*fJacobianDet(f,g);}
             }
         }
     }
@@ -572,11 +584,11 @@ void Mesh::getUniqueFaceNodeTags(){
 
     // Remove identical faces by comparing ordered arrays
 
-    vector<int>::iterator it_delete;
-    vector<int>::iterator it_deleteUnordered;
-    vector<int>::iterator it_unordered = m_fNodeTags.begin();
+    vector<std::size_t>::iterator it_delete;
+    vector<std::size_t>::iterator it_deleteUnordered;
+    vector<std::size_t>::iterator it_unordered = m_fNodeTags.begin();
 
-    for(vector<int>::iterator it_ordered = m_fNodeTagsOrdered.begin(); it_ordered != m_fNodeTagsOrdered.end();){
+    for(vector<std::size_t>::iterator it_ordered = m_fNodeTagsOrdered.begin(); it_ordered != m_fNodeTagsOrdered.end();){
         it_deleteUnordered = it_unordered+m_fNumNodes;
 
         for(it_delete=it_ordered+m_fNumNodes; it_delete != m_fNodeTagsOrdered.end(); it_delete+=m_fNumNodes){

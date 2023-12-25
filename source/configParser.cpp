@@ -4,11 +4,11 @@
 #include <fstream>
 #include <string>
 #include <cstdio>
+#include <gmsh.h>
 #include <map>
 
-#include "..\include\gmsh.h"
-#include "..\include\utils.h"
-#include "..\include\configParser.h"
+#include "utils.h"
+#include "configParser.h"
 
 using namespace std;
 

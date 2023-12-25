@@ -1,12 +1,12 @@
 #include <iostream>
 #include <errno.h>
+#include <gmsh.h>
 #include <cstdio>
 #include <omp.h>
 
-#include "..\include\gmsh.h"
-#include "..\include\Mesh.h"
-#include "..\include\solver.h"
-#include "..\include\configParser.h"
+#include "Mesh.h"
+#include "solver.h"
+#include "configParser.h"
 
 using namespace std;
 
@@ -39,7 +39,8 @@ int main(int argc,char**argv){
         for(int n=0; n<mesh.getNumNodes(); n++){
 
             vector<double> coord,paramCoord;
-            gmsh::model::mesh::getNode(mesh.getElNodeTags()[n],coord,paramCoord);
+            int dim,tag;
+            gmsh::model::mesh::getNode(mesh.getElNodeTags()[n],coord,paramCoord,dim,tag);
 	        u[0][n] += amp*exp(-((coord[0]-x)*(coord[0]-x)+(coord[1]-y)*(coord[1]-y)+(coord[2]-z)*(coord[2]-z))/size);
         }
     }

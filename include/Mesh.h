@@ -23,10 +23,10 @@ public:
     // f = face indices in memory storage
     // g = integration point indices
     
-    inline int& elTag(int el){
+    inline std::size_t& elTag(int el){
         return m_elTags[el];
     };
-    inline int& elNodeTag(int el,int n=0){
+    inline std::size_t& elNodeTag(int el,int n=0){
         return m_elNodeTags[el*m_elNumNodes+n];
     };
     inline double& elJacobian(int el,int g=0,int x=0,int u=0){
@@ -47,16 +47,16 @@ public:
     inline double& elGradBasisFct(int el,int g=0,int i=0,int x=0){
         return m_elGradBasisFcts[el*m_elNumIntPts*m_elNumNodes*3+g*m_elNumNodes*3+i*3+x];
     };
-    inline int& elFNodeTag(int el,int f=0,int i=0){
+    inline std::size_t& elFNodeTag(int el,int f=0,int i=0){
         return m_elFNodeTags[el*m_fNumPerEl*m_fNumNodes+f*m_fNumNodes+i];
     };
-    inline int& fNodeTag(int f,int i=0){
+    inline std::size_t& fNodeTag(int f,int i=0){
         return m_fNodeTags[f*m_fNumNodes+i];
     };
-    inline int& elFNodeTagOrdered(int el,int f=0,int i=0){
+    inline std::size_t& elFNodeTagOrdered(int el,int f=0,int i=0){
         return m_elFNodeTagsOrdered[el*m_fNumPerEl*m_fNumNodes+f*m_fNumNodes+i];
     };
-    inline int& fNodeTagOrdered(int f,int i=0){
+    inline std::size_t& fNodeTagOrdered(int f,int i=0){
         return m_fNodeTagsOrdered[f*m_fNumNodes+i];
     };
     inline double& fJacobian(int f,int g=0,int x=0,int u=0){
@@ -104,7 +104,7 @@ public:
 
     // Extra getters
     
-    vector<int> const &getElNodeTags(){return m_elNodeTags;}
+    vector<std::size_t> const &getElNodeTags(){return m_elNodeTags;}
     int getNumNodes(){return m_elNodeTags.size();}
     int getElNumNodes(){return m_elNumNodes;}
     int getElNum(){return m_elNum;}
@@ -135,10 +135,10 @@ private:
     string m_elName;                            // Element Type name
     string m_elIntType;                         // Integration type name
     vector<int> m_elType;                       // Element Types (integer)
-    vector<int> m_elTags;                       // Tags of the elements
+    vector<std::size_t> m_elTags;                       // Tags of the elements
     vector<int> m_elFIds;                       // Faces ids for each element [e1f1,e1f2,..,e2f1,e2f2,..]
-    vector<int> m_elNodeTags;                   // Tags of the nodes associated to each element [e1n1,e1n2,..,e2n1,e2n2,..]
-    vector<int> m_elFNodeTags;                  // Node tags for each face and each element
+    vector<std::size_t> m_elNodeTags;                   // Tags of the nodes associated to each element [e1n1,e1n2,..,e2n1,e2n2,..]
+    vector<std::size_t> m_elFNodeTags;                  // Node tags for each face and each element
     vector<int> m_elFOrientation;               // Contains 1 or -1, if the outward element face is in the same direction as the face normal or -1 if not [e1f1,e1f2,..,e2f1,e2f2]
     vector<double> m_elBasisFcts;               // Evaluation of the basis functions at the integration points [g1f1,g1f2,..,g2f1,g2f2,..]
     vector<double> m_elJacobians;               // Jacobian evaluated at each integration points (dx/du) [e1g1Jxx,e1g1Jxy,e1g1Jxz,..,e1gGJzz,e2g1Jxx,..]
@@ -146,9 +146,11 @@ private:
     vector<double> m_elIntPtCoords;             // x,y,z coordinates of the integration points element by element [e1g1x,e1g1y,e1g1z,.. ,e1gGz,e2g1x,..]
     vector<double> m_elJacobianDets;            // Determinants of the jacobian evaluated at each integration points [e1g1DetJ,e1g2DetJ,.. e2g1DetJ,e2g2DetJ,..]
     vector<double> m_elGradBasisFcts;           // Derivatives of the basis functions at the integration points [e1g1df1/dx,e1g1df1/dy,..,e1g2df1/dx,e1g2df1/dy,..,e1g1df2/dx,e1g1df2/dy,..]
-    vector<int> m_elFNodeTagsOrdered;           // Ordered used for comparison, Unordered preserve GMSH ordering and locality [e1f1n1,e1f1n2,..,e1f2n1,e1f2n2,..,e2f1n1,e2f1n2,..]
+    vector<std::size_t> m_elFNodeTagsOrdered;           // Ordered used for comparison, Unordered preserve GMSH ordering and locality [e1f1n1,e1f1n2,..,e1f2n1,e1f2n2,..,e2f1n1,e2f1n2,..]
     vector<double> m_elIntParamCoords;          // u,v,w coordinates and the weight q for each integration point [g1u,g1v,g1w,g1q,g2u,..]
     vector<double> m_elUGradBasisFcts;          // Derivatives of the basis functions at the integration points [g1df1/du,g1df1/dv,..,g2df1/du,g2df1/dv,..,g1df2/du,g1df2/dv,..]
+
+    std::vector<double> m_elWeight;
 
     int m_fDim;                                 // Face dimension
     string m_fName;                             // Face type name
@@ -160,9 +162,9 @@ private:
     int m_fNumIntPts;                           // Number of integration points on each face
 
     string m_fIntType;                          // Face integration type (same as element)
-    vector<int> m_fNodeTags;                    // Node tags for each unique face
-    vector<int> m_fNodeTagsOrdered;             // [f1n1,f1n2,..,f2n1,f2n2,..]
-    vector<int> m_fTags;                        // Tag for each unique face [f1,f2,f3,..]
+    vector<std::size_t> m_fNodeTags;                    // Node tags for each unique face
+    vector<std::size_t> m_fNodeTagsOrdered;             // [f1n1,f1n2,..,f2n1,f2n2,..]
+    vector<std::size_t> m_fTags;                        // Tag for each unique face [f1,f2,f3,..]
     vector<double> m_fJacobians;                // Jacobian evaluated at each integration points (dx/du) [f1g1Jxx,f1g1Jxy,f1g1Jxz,.. f1g1Jzz,f1g2Jxx,..,f1gGJzz,f2g1Jxx,..]
     vector<double> m_fJacobianDets;             // Determinants of the jacobian evaluated at each integration points [f1g1DetJ,f1g2DetJ,.. f2g1DetJ,f2g2DetJ,..]
     vector<double> m_fIntPtCoords;              // x,y,z coordinates of the integration points for each faces [f1g1x,f1g1y,f1g1z,.. ,f1gGz,f2g1x,..]
@@ -171,6 +173,8 @@ private:
     vector<double> m_fUGradBasisFcts;           // Derivatives of the basis functions at the integration points [g1df1/du,g1df1/dv,..,g2df1/du,g2df1/dv,..,g1df2/du,g1df2/dv,..]
     vector<double> m_fGradBasisFcts;            // Derivatives of the basis functions at the integration points [e1g1df1/dx,e1g1df1/dy,..,e1g2df1/dx,e1g2df1/dy,..,e1g1df2/dx,e1g1df2/dy,..]
     vector<double> m_fNormals;                  // Normal for each face at each int point [f1g1Nx,f1g1Ny,f1g1Nz,f1g2Nx,..,f2g1Nx,f2g1Ny,f2g1Nz,..]
+
+    std::vector<double> m_fWeight;
 
     vector<vector<int>> m_fNbrElIds;            // Id of element of each side of the face
     vector<vector<int>> m_fNToElNIds;           // Map face node Ids to element node Ids

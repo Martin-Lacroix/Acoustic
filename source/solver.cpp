@@ -1,13 +1,13 @@
 #include <iostream>
 #include <sstream>
+#include <gmsh.h>
 #include <vector>
 #include <chrono>
 #include <omp.h>
 
-#include "..\include\gmsh.h"
-#include "..\include\utils.h"
-#include "..\include\Mesh.h"
-#include "..\include\configParser.h"
+#include "utils.h"
+#include "Mesh.h"
+#include "configParser.h"
 
 using namespace std;
 
@@ -17,7 +17,7 @@ namespace solver{
     
     int numNodes;
     int elNumNodes;
-    vector<int> elTags;
+    vector<std::size_t> elTags;
     vector<double> elFlux;
     vector<string> g_names;
     vector<double> elStiffvector;
@@ -57,7 +57,7 @@ namespace solver{
 
         elNumNodes = mesh.getElNumNodes();
         numNodes = mesh.getNumNodes();
-        elTags = vector<int>(&mesh.elTag(0),&mesh.elTag(0)+mesh.getElNum());
+        elTags = vector<std::size_t>(&mesh.elTag(0),&mesh.elTag(0)+mesh.getElNum());
         elFlux.resize(elNumNodes);
         elStiffvector.resize(elNumNodes);
         Flux = vector<vector<vector<double>>>(4,vector<vector<double>>(mesh.getNumNodes(),vector<double>(3)));
@@ -85,7 +85,8 @@ namespace solver{
             for(int n=0; n<mesh.getNumNodes(); ++n){
 
                 vector<double> coord,paramCoord;
-                gmsh::model::mesh::getNode(mesh.getElNodeTags()[n],coord,paramCoord);
+                int dim,tag;
+                gmsh::model::mesh::getNode(mesh.getElNodeTags()[n],coord,paramCoord,dim,tag);
                 if(pow(coord[0]-config.sources[i][1],2)+pow(coord[1]-config.sources[i][2],2)+pow(coord[2]-config.sources[i][3],2)<pow(config.sources[i][4],2)){
                     indice.push_back(n);
                 }
@@ -168,7 +169,7 @@ namespace solver{
          
         elNumNodes = mesh.getElNumNodes();
         numNodes = mesh.getNumNodes();
-        elTags = vector<int>(&mesh.elTag(0),&mesh.elTag(0)+mesh.getElNum());
+        elTags = vector<std::size_t>(&mesh.elTag(0),&mesh.elTag(0)+mesh.getElNum());
         elFlux.resize(elNumNodes);  
         elStiffvector.resize(elNumNodes);
         vector<vector<double>> k1,k2,k3,k4;
@@ -197,7 +198,8 @@ namespace solver{
             for(int n=0; n<mesh.getNumNodes(); n++){
 
                 vector<double> coord,paramCoord;
-                gmsh::model::mesh::getNode(mesh.getElNodeTags()[n],coord,paramCoord);
+                int dim,tag;
+                gmsh::model::mesh::getNode(mesh.getElNodeTags()[n],coord,paramCoord,dim,tag);
                 if(pow(coord[0]-config.sources[i][1],2)+pow(coord[1]-config.sources[i][2],2)+pow(coord[2]-config.sources[i][3],2)<pow(config.sources[i][4],2)){
                     indice.push_back(n);
                 }
