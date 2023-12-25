@@ -11,6 +11,5 @@ cd workspace
 
 # Runs the code
 
-export MKL_NUM_THREADS=8
 export OMP_NUM_THREADS=8
 ../build/Acoustic ${MESH} ${CONFIG} 2>&1 | tee workspace.txt
