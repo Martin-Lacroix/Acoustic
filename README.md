@@ -9,7 +9,7 @@ First, make sure that the Eigen library is installed and that your GCC supports 
 cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j8
 ```
-The executable requires a Mesh and a Config files containing the simulation parameters such as the initial conditions, some examples are given in the examples folder. The output can then be opened in your Gmsh application to visualize the solution.
+The executable requires a Mesh and a Config files containing the simulation parameters such as the initial conditions, some examples are given in the example folder. The output can then be opened in your Gmsh application to visualize the solution.
 ```css
 .\Acoustic ${path-to-mesh.msh} ${path-to-config.conf}
 ```
