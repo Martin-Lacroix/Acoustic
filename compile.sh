@@ -1,4 +1,4 @@
-# Creates the folders
+# Create the folders
 
 rm -rf build
 mkdir build
