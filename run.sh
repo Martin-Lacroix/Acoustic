@@ -9,7 +9,7 @@ rm -rf workspace
 mkdir workspace
 cd workspace
 
-# Runs the code
+# Run the code
 
 export OMP_NUM_THREADS=8
 ../build/Acoustic ${MESH} ${CONFIG} 2>&1 | tee workspace.txt
